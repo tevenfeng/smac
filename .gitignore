@@ -1,4 +1,6 @@
 .idea/vcs.xml
 .idea/workspace.xml
+.idea/fileTemplates
 
-./target
+target
+
