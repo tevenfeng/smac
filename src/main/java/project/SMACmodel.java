@@ -23,6 +23,13 @@ public class SMACmodel extends Observable {
             while (t.hasNextToken()) {
                 r += t.peekNextToken() + " ";
                 t.readNextToken();
+
+                // Codes to wirte.
+
+
+
+
+
             }
 
         } catch (Exception e) {
