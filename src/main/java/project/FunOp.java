@@ -1,17 +1,22 @@
 package project;
 
 /**
- * Created by tevenfeng on 17-3-3.
+ * Coded by Fengdingwen(2016229064)
+ * We assume that the priorities of this
+ * operators are like the followings:
+ * 0: + -
+ * 1: * /
+ * 2: ^
  */
 public class FunOp {
     // Name of the operator.
     // For example, '+', '-' and so on.
-    private String name;
+    public String name;
 
     // The number of operands, for example, 1 or 2
     // For example, '+' needs two numbers to calculate.
-    private int arity;
+    public int arity;
 
-    // The priority of this operator.
-    private int priority;
+    // The priority of this operator. We assume the default priority is -1.
+    public int priority = -1;
 }

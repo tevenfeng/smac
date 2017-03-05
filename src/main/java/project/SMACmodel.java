@@ -17,24 +17,22 @@ public class SMACmodel extends Observable {
     public void eval(String input) {
         ////// CHANGE THIS PART //////
         String r = "> " + input + "\n\n";
-        try {
 
+        // Evaluate the input here(done by Qixuebin and Dingqixuan).
+
+
+        try {
             Tokenizer t = new Tokenizer(input);
             while (t.hasNextToken()) {
                 r += t.peekNextToken() + " ";
                 t.readNextToken();
-
-                // Codes to wirte.
-
-
-
-
 
             }
 
         } catch (Exception e) {
             r += "ERROR: " + e.getMessage();
         }
+
         //////////////////////////////
         // this notify the view and send the result
         setChanged();

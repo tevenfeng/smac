@@ -64,12 +64,12 @@ public class Tokenizer {
         if (index >= buffer.length())
             return null;
         char c = buffer.charAt(index);
-        if (c == '-') {
-            if (index < buffer.length())
-                if (isDigit(buffer.charAt(index + 1)))
-                    return nextNumber();
-            return nextOperator();
-        }
+        //if (c == '-') {
+        //if (index < buffer.length())
+        //if (isDigit(buffer.charAt(index + 1)))
+        //return nextNumber();
+        //return nextOperator();
+        //}
         if (isLetter(c))
             return nextIdentifier();
         if (isDigit(c))
