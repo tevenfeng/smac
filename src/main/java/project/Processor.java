@@ -1,14 +1,11 @@
 package project;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Coded by Fengdingwen(2016229064)
  * These codes are the main part of the program and they
- * are used to processor every string input by the usr.
+ * are used to processor every string input by the user.
  */
 public class Processor {
 
@@ -66,10 +63,7 @@ public class Processor {
                     case "let":
                         break;
                     case "reset":
-                        if (t.hasNextToken()) {
-
-                        }
-                        break;
+                        return resetProcess(t);
                     case "last":
                         break;
                     case "save":
@@ -85,25 +79,11 @@ public class Processor {
                     case "logged":
                         break;
                     case "setprecision":
-                        if (t.hasNextToken()) {
-                            if (t.peekNextToken().isNumber()) {
-                                Token tmp = t.readNextToken();
-                                if (tmp.getNumber() == Math.floor(tmp.getNumber())) {
-                                    this.setPrecision((int) tmp.getNumber());
-                                    return "precision set to " + (int) tmp.getNumber();
-                                } else {
-                                    throw new LexicalErrorException("Precision should be an integer.");
-                                }
-                            } else {
-                                throw new LexicalErrorException(t.peekNextToken().toString() + " can not be a precision.");
-                            }
-                        } else {
-                            return "current precision is " + currentPrecision;
-                        }
+                        return precisionManage(t);
                     case "session":
                         break;
                     default:
-                        throw new LexicalErrorException(firstToken.getIdentifier() + " is not a variable.");
+                        throw new SyntaxErrorException(firstToken.getIdentifier() + " is not a variable");
                 }
             }
         }
@@ -113,13 +93,37 @@ public class Processor {
     }
 
 
-    // This function processes the reset of the tokens following a 'let' token.
-    // And this means that we are going to do some assignment-processing.
-    public void letProcessor() {
+    // This function processes following tokens after 'let'.
+    // And this usually means that we are going to do some assignment-processing.
+    public void letProcessor(Tokenizer t) {
+        if (t.hasNextToken()) {
 
+        }
     }
 
-    // This static function helps set the current precision.
+    //region Precision Management
+
+    // This function manages the precision according to the input by the usr.
+    private String precisionManage(Tokenizer t)
+            throws LexicalErrorException, TokenException, SyntaxErrorException {
+        if (t.hasNextToken()) {
+            if (t.peekNextToken().isNumber()) {
+                Token tmp = t.readNextToken();
+                if (tmp.getNumber() == Math.floor(tmp.getNumber())) {
+                    this.setPrecision((int) tmp.getNumber());
+                    return "precision set to " + (int) tmp.getNumber();
+                } else {
+                    throw new LexicalErrorException("Precision should be an integer");
+                }
+            } else {
+                throw new SyntaxErrorException(t.peekNextToken().toString() + " can not be a precision");
+            }
+        } else {
+            return "current precision is " + currentPrecision;
+        }
+    }
+
+    // This function helps set the current precision.
     private void setPrecision(int precision) {
         currentPrecision = precision;
     }
@@ -128,4 +132,37 @@ public class Processor {
     public int getCurrentPrecision() {
         return currentPrecision;
     }
+
+    //endregion
+
+    //region Codes to process 'Reset'
+
+    // This function is used to process the keyword 'reset'
+    private String resetProcess(Tokenizer t) throws TokenException, SyntaxErrorException, LexicalErrorException {
+        String result = "";
+        if (t.hasNextToken()) {
+            while (t.hasNextToken()) {
+                if (t.peekNextToken().isIdentifier()) {
+                    if (variables.containsKey(t.peekNextToken().getIdentifier())) {
+                        variables.remove(t.peekNextToken().getIdentifier());
+                        result += t.readNextToken().getIdentifier() + " has been reset\n";
+                    } else {
+                        throw new SyntaxErrorException(t.peekNextToken().getIdentifier() + " is not a variable");
+                    }
+                } else {
+                    throw new SyntaxErrorException(t.peekNextToken().toString() + " is not a variable");
+                }
+            }
+        } else {
+            Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
+            while (entries.hasNext()) {
+                result += entries.next().getKey() + " has been reset\n";
+            }
+            variables.clear();
+        }
+
+        return result;
+    }
+
+    //endregion
 }

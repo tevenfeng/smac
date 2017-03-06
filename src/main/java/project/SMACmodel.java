@@ -22,6 +22,7 @@ public class SMACmodel extends Observable {
 
         try {
             Tokenizer t = new Tokenizer(input);
+
             Processor myProcessor = new Processor();
 
             r += myProcessor.startProcessByFirstKeyWord(t);
@@ -33,7 +34,7 @@ public class SMACmodel extends Observable {
 //            }
 
         } catch (Exception e) {
-            r += "ERROR: " + e.getMessage();
+            r += e.toString();
         }
 
         //////////////////////////////
