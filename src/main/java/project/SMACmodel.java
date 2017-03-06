@@ -18,14 +18,12 @@ public class SMACmodel extends Observable {
         ////// CHANGE THIS PART //////
         String r = "> " + input + "\n\n";
 
-        // Evaluate the input here(done by Qixuebin and Dingqixuan).
-
         try {
             Tokenizer t = new Tokenizer(input);
 
-            Processor myProcessor = new Processor();
+            Evaluator myEvaluator = new Evaluator();
 
-            r += myProcessor.startProcessByFirstKeyWord(t);
+            r += myEvaluator.startProcessByFirstKeyWord(t);
 
 //            while (t.hasNextToken()) {
 //                r += t.peekNextToken() + " ";
