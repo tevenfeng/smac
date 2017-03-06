@@ -1,7 +1,9 @@
 package project;
 
 /**
- * Created by tevenfeng on 17-3-3.
+ * Coded by Fengdingwen(2016229064)
+ * These codes are used to do the evaluation of a given mathematical expression
+ * which will be provided with form of a token queue.
  */
 public class MathematicalEvaluator {
 }

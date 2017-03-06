@@ -20,14 +20,17 @@ public class SMACmodel extends Observable {
 
         // Evaluate the input here(done by Qixuebin and Dingqixuan).
 
-
         try {
             Tokenizer t = new Tokenizer(input);
-            while (t.hasNextToken()) {
-                r += t.peekNextToken() + " ";
-                t.readNextToken();
+            Processor myProcessor = new Processor();
 
-            }
+            r += myProcessor.startProcessByFirstKeyWord(t);
+
+//            while (t.hasNextToken()) {
+//                r += t.peekNextToken() + " ";
+//                t.readNextToken();
+//
+//            }
 
         } catch (Exception e) {
             r += "ERROR: " + e.getMessage();
