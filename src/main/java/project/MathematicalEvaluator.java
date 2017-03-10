@@ -1,5 +1,6 @@
 package project;
 
+import java.util.Map;
 import java.util.Stack;
 
 /**
@@ -8,17 +9,18 @@ import java.util.Stack;
  * which will be provided with form of a token queue.
  */
 public class MathematicalEvaluator {
-    private Tokenizer tokenizer;
 
     private double result;
+    private boolean isExpression;
 
-    public MathematicalEvaluator(Tokenizer t) {
-        this.tokenizer = t;
+    public MathematicalEvaluator() {
+        result = 0;
+        isExpression = false;
     }
 
     // Judge if the expression is legal.
-    public void JudegTheExpression()
-            throws TokenException, GeneralErrorException {
+    public void computeResult(Tokenizer tokenizer, Map<String, Double> variables, double theLast)
+            throws TokenException, GeneralErrorException, LexicalErrorException, SyntaxErrorException {
 
         // The operate stack is used to store the operate.
         Stack<FunOp> theOperateStack = new Stack<FunOp>();
@@ -26,16 +28,29 @@ public class MathematicalEvaluator {
         // The number stack is used to store the number.
         Stack<Double> theValueStack = new Stack<Double>();
 
-        while (this.tokenizer.hasNextToken()) {
-            Token getTheNextToken = this.tokenizer.peekNextToken();
+        int count = 0;
+
+        while (tokenizer.hasNextToken()) {
+            Token getTheNextToken = tokenizer.readNextToken();
+
+            count++;
+            if (count > 1) {
+                this.isExpression = true;
+            }
 
             if (getTheNextToken.isNumber()) {
                 theValueStack.push(getTheNextToken.getNumber());
             } else if (getTheNextToken.isIdentifier()) {
-                //    theValueStack.push(getTheNextToken.getString());
+                if (getTheNextToken.getIdentifier().equals("last")) {
+                    theValueStack.push(theLast);
+                } else if (variables.containsKey(getTheNextToken.getIdentifier())) {
+                    theValueStack.push(variables.get(getTheNextToken.getIdentifier()));
+                } else {
+                    throw new SyntaxErrorException(getTheNextToken.getIdentifier() + " is not a variable");
+                }
             } else if (getTheNextToken.isDelimiter()) {
                 FunOp GetTheFunOp = new FunOp(getTheNextToken.getDelimiter());
-                if (GetTheFunOp.getName() == "(") {
+                if (GetTheFunOp.getName().equals("(")) {
                     theOperateStack.push(GetTheFunOp);
                 } else {
                     while (!theOperateStack.peek().getName().equals("(")) {
@@ -50,8 +65,7 @@ public class MathematicalEvaluator {
                 }
             } else if (getTheNextToken.isOperator()) {
                 FunOp thisOperate = new FunOp(getTheNextToken.getOperator());
-                FunOp formerOperate = theOperateStack.peek();
-                while (!theOperateStack.empty() && (formerOperate.getPriority() >= thisOperate.getPriority())) {
+                while (!theOperateStack.empty() && (theOperateStack.peek().getPriority() >= thisOperate.getPriority())) {
                     String theOperate = theOperateStack.pop().getName();
                     double firstValue = theValueStack.pop();
                     double secondValue = theValueStack.pop();
@@ -65,8 +79,8 @@ public class MathematicalEvaluator {
         }
 
         while (!theOperateStack.empty()) {
-            theOperateStack.pop();
-            String theOperate = theOperateStack.pop().getName();
+            FunOp tmp = theOperateStack.pop();
+            String theOperate = tmp.getName();
             double firstValue = theValueStack.pop();
             double secondValue = theValueStack.pop();
             double theResult = ComputeTheResult(firstValue, secondValue, theOperate);
@@ -76,14 +90,14 @@ public class MathematicalEvaluator {
         this.result = theValueStack.pop();
     }
 
-    public double ComputeTheResult(double firstValue, double secondValue, String theOperate)
+    private double ComputeTheResult(double firstValue, double secondValue, String theOperate)
             throws GeneralErrorException {
         double theResult = 0;
         switch (theOperate) {
             case "+":
                 return firstValue + secondValue;
             case "-":
-                return firstValue + secondValue;
+                return secondValue - firstValue;
             case "*":
                 return firstValue * secondValue;
             case "/":
@@ -101,5 +115,9 @@ public class MathematicalEvaluator {
             default:
                 return 0;
         }
+    }
+
+    public Result getResult() {
+        return new Result(this.result, this.isExpression);
     }
 }

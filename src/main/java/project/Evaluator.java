@@ -1,5 +1,6 @@
 package project;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -36,7 +37,7 @@ public class Evaluator {
 
     // Current precison, if this value equals -1,
     // then we should use the default precision in java.
-    private static int currentPrecision = -1;
+    private static int currentPrecision = 6;
 
     public Evaluator() {
 
@@ -48,17 +49,19 @@ public class Evaluator {
         return keyWords.contains(token.getIdentifier());
     }
 
-    private String formatWithPrecision() {
-        String result = "";
+    private String formatWithPrecision(double result) {
+        BigDecimal bd = new BigDecimal(result);
+        double withPrecision = bd.setScale(currentPrecision, BigDecimal.ROUND_HALF_DOWN).doubleValue();
 
-        return result;
+        return Double.toString(withPrecision);
     }
 
-//    private double compute(Tokenizer t, Map<String, Double> variables, double theLast) {
-//        MathematicalEvaluator myCal = new MathematicalEvaluator();
-//        myCal.computeResult(t, variables, theLast);
-//        return myCal.getResult();
-//    }
+    private Result compute(Tokenizer t, Map<String, Double> variables, double theLast)
+            throws TokenException, GeneralErrorException, LexicalErrorException, SyntaxErrorException {
+        MathematicalEvaluator myCal = new MathematicalEvaluator();
+        myCal.computeResult(t, variables, theLast);
+        return myCal.getResult();
+    }
 
     // Process the first token to decide what kind of input it is,
     // for example, if the first token is 'let' then it should be followed
@@ -81,7 +84,7 @@ public class Evaluator {
                     case "last":
                         t.readNextToken();
                         if (!t.hasNextToken()) {
-                            return Double.toString(this.last);
+                            return formatWithPrecision(last);
                         } else {
                             throw new SyntaxErrorException("Redundant token: " + t.peekNextToken());
                         }
@@ -104,10 +107,15 @@ public class Evaluator {
                     default:
                         firstToken = t.readNextToken();
                         if (t.hasNextToken()) {
-                            // Compute the expression and assign the result to 'last' and return it
-//                            this.last = compute(t, variables, this.last);
-//                            variables.put(firstToken.getIdentifier(), this.last);
-//                            return Double.toString(this.last);
+                            // Compute the expression(still have to make sure)
+                            // and assign the result to 'last' and return it
+                            Result tmpResult = compute(t, variables, last);
+                            if (tmpResult.isExpression) {
+                                last = tmpResult.result;
+                            }
+
+                            variables.put(firstToken.getIdentifier(), tmpResult.result);
+                            return formatWithPrecision(tmpResult.result);
                         } else {
                             //return firstToken.getIdentifier();
                             if (variables.containsKey(firstToken.getIdentifier())) {
@@ -121,8 +129,8 @@ public class Evaluator {
                 }
             } else {
                 // Compute the expression and assign the result to 'last' and return it
-//                this.last = compute(t, variables, this.last);
-//                return Double.toString(this.last);
+                last = compute(t, variables, last).result;
+                return formatWithPrecision(last);
             }
         }
 
@@ -135,7 +143,7 @@ public class Evaluator {
     // This function processes following tokens after 'let'.
     // And this usually means that we are going to do some assignment-processing.
     public String letProcessor(Tokenizer t)
-            throws TokenException, LexicalErrorException, SyntaxErrorException {
+            throws TokenException, LexicalErrorException, SyntaxErrorException, GeneralErrorException {
         String result = "";
 
         if (t.hasNextToken()) {
@@ -144,11 +152,15 @@ public class Evaluator {
                 Token equal = t.readNextToken();
                 if (t.hasNextToken() && equal.isEqual()) {
                     if (!isKeyWord(identifier)) {
-                        // Compute the expression and assign it to 'last' and then return it.
-//                        this.last = compute(t, variables, this.last);
-//                        variables.put(identifier.getIdentifier(), this.last);
-//                        return Double.toString(this.last);
+                        // Compute the expression(still have to make sure)
+                        // and assign the result to 'last' and return it
+                        Result tmpResult = compute(t, variables, last);
+                        if (tmpResult.isExpression) {
+                            last = tmpResult.result;
+                        }
 
+                        variables.put(identifier.getIdentifier(), tmpResult.result);
+                        return formatWithPrecision(tmpResult.result);
                     } else {
                         throw new SyntaxErrorException(identifier.getIdentifier() + " is not a variable");
                     }
@@ -162,7 +174,8 @@ public class Evaluator {
             if (!variables.isEmpty()) {
                 Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
                 while (entries.hasNext()) {
-                    result += entries.next().getKey() + " = " + entries.next().getValue() + "\n";
+                    Map.Entry<String, Double> tmpEntry = entries.next();
+                    result += tmpEntry.getKey() + " = " + tmpEntry.getValue() + "\n";
                 }
             } else {
                 result = "no variable defined\n";
