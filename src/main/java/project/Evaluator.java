@@ -48,11 +48,17 @@ public class Evaluator {
         return keyWords.contains(token.getIdentifier());
     }
 
-    private double compute(Tokenizer t, Map<String, Double> variables, double theLast) {
-        MathematicalEvaluator myCal = new MathematicalEvaluator();
-        myCal.computeResult(t, variables, theLast);
-        return myCal.getResult();
+    private String formatWithPrecision() {
+        String result = "";
+
+        return result;
     }
+
+//    private double compute(Tokenizer t, Map<String, Double> variables, double theLast) {
+//        MathematicalEvaluator myCal = new MathematicalEvaluator();
+//        myCal.computeResult(t, variables, theLast);
+//        return myCal.getResult();
+//    }
 
     // Process the first token to decide what kind of input it is,
     // for example, if the first token is 'let' then it should be followed
@@ -99,9 +105,9 @@ public class Evaluator {
                         firstToken = t.readNextToken();
                         if (t.hasNextToken()) {
                             // Compute the expression and assign the result to 'last' and return it
-                            this.last = compute(t, variables, this.last);
-                            variables.put(firstToken.getIdentifier(), this.last);
-                            return Double.toString(this.last);
+//                            this.last = compute(t, variables, this.last);
+//                            variables.put(firstToken.getIdentifier(), this.last);
+//                            return Double.toString(this.last);
                         } else {
                             //return firstToken.getIdentifier();
                             if (variables.containsKey(firstToken.getIdentifier())) {
@@ -115,8 +121,8 @@ public class Evaluator {
                 }
             } else {
                 // Compute the expression and assign the result to 'last' and return it
-                this.last = compute(t, variables, this.last);
-                return Double.toString(this.last);
+//                this.last = compute(t, variables, this.last);
+//                return Double.toString(this.last);
             }
         }
 
@@ -139,9 +145,9 @@ public class Evaluator {
                 if (t.hasNextToken() && equal.isEqual()) {
                     if (!isKeyWord(identifier)) {
                         // Compute the expression and assign it to 'last' and then return it.
-                        this.last = compute(t, variables, this.last);
-                        variables.put(identifier.getIdentifier(), this.last);
-                        return Double.toString(this.last);
+//                        this.last = compute(t, variables, this.last);
+//                        variables.put(identifier.getIdentifier(), this.last);
+//                        return Double.toString(this.last);
 
                     } else {
                         throw new SyntaxErrorException(identifier.getIdentifier() + " is not a variable");
