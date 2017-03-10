@@ -9,8 +9,8 @@ import java.util.*;
  */
 public class Evaluator {
 
-    // GLOBAL variable to store the 'last' computational result
-    private int last;
+    // GLOBAL variable to store the 'last' computational result.
+    private static double last;
 
     // Hashmap to store all variables
     private static Map<String, Double> variables = new HashMap<>();
@@ -48,6 +48,12 @@ public class Evaluator {
         return keyWords.contains(token.getIdentifier());
     }
 
+    private double compute(Tokenizer t, Map<String, Double> variables, double theLast) {
+        MathematicalEvaluator myCal = new MathematicalEvaluator();
+        myCal.computeResult(t, variables, theLast);
+        return myCal.getResult();
+    }
+
     // Process the first token to decide what kind of input it is,
     // for example, if the first token is 'let' then it should be followed
     // by a '=', and if it is 'log' then it should be followed by a String
@@ -57,16 +63,24 @@ public class Evaluator {
         String resultString = "";
 
         if (t.hasNextToken()) {
-            Token firstToken = t.readNextToken();
+            Token firstToken = t.peekNextToken();
             if (firstToken.isIdentifier()) {
                 switch (firstToken.getIdentifier()) {
                     case "let":
-                        break;
+                        t.readNextToken();
+                        return letProcessor(t);
                     case "reset":
+                        t.readNextToken();
                         return resetProcess(t);
                     case "last":
-                        break;
+                        t.readNextToken();
+                        if (!t.hasNextToken()) {
+                            return Double.toString(this.last);
+                        } else {
+                            throw new SyntaxErrorException("Redundant token: " + t.peekNextToken());
+                        }
                     case "save":
+
                         break;
                     case "load":
                         break;
@@ -79,12 +93,30 @@ public class Evaluator {
                     case "logged":
                         break;
                     case "setprecision":
+                        t.readNextToken();
                         return precisionManage(t);
-                    case "session":
-                        break;
                     default:
-                        throw new SyntaxErrorException(firstToken.getIdentifier() + " is not a variable");
+                        firstToken = t.readNextToken();
+                        if (t.hasNextToken()) {
+                            // Compute the expression and assign the result to 'last' and return it
+                            this.last = compute(t, variables, this.last);
+                            variables.put(firstToken.getIdentifier(), this.last);
+                            return Double.toString(this.last);
+                        } else {
+                            //return firstToken.getIdentifier();
+                            if (variables.containsKey(firstToken.getIdentifier())) {
+                                // Output the value of this variable.
+                                return variables.get(firstToken.getIdentifier()).toString();
+                            } else {
+                                throw new GeneralErrorException(firstToken.getIdentifier() + " is not a variable");
+                            }
+                        }
+                        //break;
                 }
+            } else {
+                // Compute the expression and assign the result to 'last' and return it
+                this.last = compute(t, variables, this.last);
+                return Double.toString(this.last);
             }
         }
 
@@ -92,14 +124,49 @@ public class Evaluator {
         return resultString;
     }
 
+    //region Codes to process 'let'
 
     // This function processes following tokens after 'let'.
     // And this usually means that we are going to do some assignment-processing.
-    public void letProcessor(Tokenizer t) {
-        if (t.hasNextToken()) {
+    public String letProcessor(Tokenizer t)
+            throws TokenException, LexicalErrorException, SyntaxErrorException {
+        String result = "";
 
+        if (t.hasNextToken()) {
+            Token identifier = t.readNextToken();
+            if (t.hasNextToken() && identifier.isIdentifier()) {
+                Token equal = t.readNextToken();
+                if (t.hasNextToken() && equal.isEqual()) {
+                    if (!isKeyWord(identifier)) {
+                        // Compute the expression and assign it to 'last' and then return it.
+                        this.last = compute(t, variables, this.last);
+                        variables.put(identifier.getIdentifier(), this.last);
+                        return Double.toString(this.last);
+
+                    } else {
+                        throw new SyntaxErrorException(identifier.getIdentifier() + " is not a variable");
+                    }
+                } else {
+                    throw new SyntaxErrorException("Malformed assignment");
+                }
+            } else {
+                throw new SyntaxErrorException("Malformed assignment");
+            }
+        } else {
+            if (!variables.isEmpty()) {
+                Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
+                while (entries.hasNext()) {
+                    result += entries.next().getKey() + " = " + entries.next().getValue() + "\n";
+                }
+            } else {
+                result = "no variable defined\n";
+            }
         }
+
+        return result;
     }
+
+    //endregion
 
     //region Precision Management
 
@@ -109,11 +176,11 @@ public class Evaluator {
         if (t.hasNextToken()) {
             if (t.peekNextToken().isNumber()) {
                 Token tmp = t.readNextToken();
-                if (tmp.getNumber() == Math.floor(tmp.getNumber())) {
+                if (tmp.getNumber() > 0 && tmp.getNumber() == Math.floor(tmp.getNumber())) {
                     this.setPrecision((int) tmp.getNumber());
                     return "precision set to " + (int) tmp.getNumber();
                 } else {
-                    throw new LexicalErrorException("Precision should be an integer");
+                    throw new LexicalErrorException("Precision should be an unsigned integer");
                 }
             } else {
                 throw new SyntaxErrorException(t.peekNextToken().toString() + " can not be a precision");
@@ -141,9 +208,11 @@ public class Evaluator {
     private String resetProcess(Tokenizer t) throws TokenException, SyntaxErrorException, LexicalErrorException {
         String result = "";
         if (t.hasNextToken()) {
+            // Followed by some specific variables(maybe).
             while (t.hasNextToken()) {
                 if (t.peekNextToken().isIdentifier()) {
-                    if (variables.containsKey(t.peekNextToken().getIdentifier())) {
+                    if (variables.containsKey(t.peekNextToken().getIdentifier())
+                            && !keyWords.contains(t.peekNextToken().getIdentifier())) {
                         variables.remove(t.peekNextToken().getIdentifier());
                         result += t.readNextToken().getIdentifier() + " has been reset\n";
                     } else {
@@ -154,6 +223,7 @@ public class Evaluator {
                 }
             }
         } else {
+            // Followed by nothing, so we have to delete all variables.
             Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
             while (entries.hasNext()) {
                 result += entries.next().getKey() + " has been reset\n";
@@ -163,6 +233,14 @@ public class Evaluator {
 
         return result;
     }
+
+    //endregion
+
+    //region Save
+
+//    private String saveProcess(Tokenizer t){
+//
+//    }
 
     //endregion
 }
