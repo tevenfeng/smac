@@ -2,6 +2,8 @@ package project;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.io.*;
+import java.io.FileNotFoundException;
 
 /**
  * Coded by Fengdingwen(2016229064)
@@ -12,6 +14,7 @@ public class Evaluator {
 
     // GLOBAL variable to store the 'last' computational result.
     private static double last;
+
 
     // Hashmap to store all variables
     private static Map<String, Double> variables = new HashMap<>();
@@ -67,7 +70,7 @@ public class Evaluator {
     // for example, if the first token is 'let' then it should be followed
     // by a '=', and if it is 'log' then it should be followed by a String
     public String startProcessByFirstKeyWord(Tokenizer t)
-            throws TokenException, LexicalErrorException, GeneralErrorException, SyntaxErrorException {
+            throws TokenException, LexicalErrorException, GeneralErrorException, SyntaxErrorException, FileNotFoundException {
 
         String resultString = "";
 
@@ -89,15 +92,16 @@ public class Evaluator {
                             throw new SyntaxErrorException("Redundant token: " + t.peekNextToken());
                         }
                     case "save":
-
-                        break;
+                        String s = saveProcess(t);
+                        System.out.println(s);
+                        return s;
                     case "load":
-                        break;
+                        String l = loadProcess(t);
+                        System.out.println(l);
+                        return l;
                     case "saved":
                         break;
                     case "log":
-                        break;
-                    case "end":
                         break;
                     case "logged":
                         break;
@@ -257,9 +261,71 @@ public class Evaluator {
 
     //region Save
 
-//    private String saveProcess(Tokenizer t){
-//
-//    }
+    // This function is used to process the key word 'save', that means we
+    // are going to save all variables in the map 'variables'.
+    private String saveProcess(Tokenizer t) throws LexicalErrorException, TokenException, SyntaxErrorException, FileNotFoundException {
+        String re = "";
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            Token tmp = t.peekNextToken();
+            String name = tmp.getString();
+            t.readNextToken();
+            if (!t.hasNextToken()) {
+                Set<String> keySet = variables.keySet();
+                PrintStream output = new PrintStream(new File(name + ".txt"));
+                for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext(); ) {
+                    String key = iterator.next();
+                    double value = variables.get(key);
+                    output.println(key + " = " + value);
+                    re = "varialbes saved in " + name;
+                }
+            } else {
+                Token ch = t.peekNextToken();
+                String v = ch.getIdentifier();
+                PrintStream output = new PrintStream(new File(name + ".txt"));
+                if (variables.containsKey(v)) {
+                    double value = variables.get(v);
+                    output.println(v + " = " + value);
+                    re = "varialbes saved in " + name;
+                } else {
+                    throw new SyntaxErrorException("The name of variable is wrong.");
+                }
+            }
+        } else {
+            throw new FileNotFoundException("Filename is not entered.");
+        }
+        return re;
+    }
 
     //endregion
+
+    // region Load
+
+    // This function is used to process the key word 'load', which means we
+    // are going to read the context from file and store the context into the map.
+
+    private String loadProcess(Tokenizer t) throws LexicalErrorException, TokenException, FileNotFoundException, SyntaxErrorException {
+        String re = "";
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            Token tmp = t.peekNextToken();
+            String name = tmp.getString();
+            File file = new File(name + ".txt");
+            Scanner input = new Scanner(file);
+            while (input.hasNextLine()) {
+                String line = input.nextLine();
+                Scanner Line = new Scanner(line);
+                String varname = Line.next();
+                String equal = Line.next();
+                double num = Line.nextDouble();
+                variables.put(varname, num);
+            }
+            re = name + "  load";
+        } else {
+            throw new SyntaxErrorException("File is not found.");
+        }
+        return re;
+    }
+
+    // endregion
 }
