@@ -12,15 +12,16 @@ import java.io.FileNotFoundException;
  */
 public class Evaluator {
 
+    private String fileRootPath = "";
+
     // GLOBAL variable to store the 'last' computational result.
     private static double last;
-
 
     // Hashmap to store all variables
     private static Map<String, Double> variables = new HashMap<>();
 
     // Key words set, help to determine whether an identifier is a key word actually.
-    private static Set keyWords = new HashSet();
+    private static Set<String> keyWords = new HashSet<>();
 
     // Init keyWords set
     static {
@@ -35,11 +36,9 @@ public class Evaluator {
         keyWords.add("end");
         keyWords.add("logged");
         keyWords.add("setprecision");
-        keyWords.add("session");
     }
 
-    // Current precison, if this value equals -1,
-    // then we should use the default precision in java.
+    // Current precision, the default precision is 6
     private static int currentPrecision = 6;
 
     public Evaluator() {
@@ -52,13 +51,7 @@ public class Evaluator {
         return keyWords.contains(token.getIdentifier());
     }
 
-    private String formatWithPrecision(double result) {
-        BigDecimal bd = new BigDecimal(result);
-        double withPrecision = bd.setScale(currentPrecision, BigDecimal.ROUND_HALF_DOWN).doubleValue();
-
-        return Double.toString(withPrecision);
-    }
-
+    // The function to execute the computation
     private Result compute(Tokenizer t, Map<String, Double> variables, double theLast)
             throws TokenException, GeneralErrorException, LexicalErrorException, SyntaxErrorException {
         MathematicalEvaluator myCal = new MathematicalEvaluator();
@@ -92,13 +85,9 @@ public class Evaluator {
                             throw new SyntaxErrorException("Redundant token: " + t.peekNextToken());
                         }
                     case "save":
-                        String s = saveProcess(t);
-                        System.out.println(s);
-                        return s;
+                        return saveProcess(t);
                     case "load":
-                        String l = loadProcess(t);
-                        System.out.println(l);
-                        return l;
+                        return loadProcess(t);
                     case "saved":
                         break;
                     case "log":
@@ -142,7 +131,49 @@ public class Evaluator {
         return resultString;
     }
 
-    //region Codes to process 'let'
+    //region Precision Management
+
+    // This function manages the precision according to the input by the usr.
+    private String precisionManage(Tokenizer t)
+            throws LexicalErrorException, TokenException, SyntaxErrorException {
+        if (t.hasNextToken()) {
+            if (t.peekNextToken().isNumber()) {
+                Token tmp = t.readNextToken();
+                if (tmp.getNumber() > 0 && tmp.getNumber() == Math.floor(tmp.getNumber())) {
+                    this.setPrecision((int) tmp.getNumber());
+                    return "precision set to " + (int) tmp.getNumber();
+                } else {
+                    throw new LexicalErrorException("Precision should be an unsigned integer");
+                }
+            } else {
+                throw new SyntaxErrorException(t.peekNextToken().toString() + " can not be a precision");
+            }
+        } else {
+            return "current precision is " + currentPrecision;
+        }
+    }
+
+    // This function helps set the current precision.
+    private void setPrecision(int precision) {
+        currentPrecision = precision;
+    }
+
+    // This function helps get the current precision.
+    public int getCurrentPrecision() {
+        return currentPrecision;
+    }
+
+    // This function format a double number into string with the specific precision
+    private String formatWithPrecision(double result) {
+        BigDecimal bd = new BigDecimal(result);
+        double withPrecision = bd.setScale(currentPrecision, BigDecimal.ROUND_HALF_DOWN).doubleValue();
+
+        return Double.toString(withPrecision);
+    }
+
+    //endregion
+
+    //region Let
 
     // This function processes following tokens after 'let'.
     // And this usually means that we are going to do some assignment-processing.
@@ -179,7 +210,7 @@ public class Evaluator {
                 Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
                 while (entries.hasNext()) {
                     Map.Entry<String, Double> tmpEntry = entries.next();
-                    result += tmpEntry.getKey() + " = " + tmpEntry.getValue() + "\n";
+                    result += tmpEntry.getKey() + " = " + formatWithPrecision(tmpEntry.getValue()) + "\n";
                 }
             } else {
                 result = "no variable defined\n";
@@ -191,41 +222,7 @@ public class Evaluator {
 
     //endregion
 
-    //region Precision Management
-
-    // This function manages the precision according to the input by the usr.
-    private String precisionManage(Tokenizer t)
-            throws LexicalErrorException, TokenException, SyntaxErrorException {
-        if (t.hasNextToken()) {
-            if (t.peekNextToken().isNumber()) {
-                Token tmp = t.readNextToken();
-                if (tmp.getNumber() > 0 && tmp.getNumber() == Math.floor(tmp.getNumber())) {
-                    this.setPrecision((int) tmp.getNumber());
-                    return "precision set to " + (int) tmp.getNumber();
-                } else {
-                    throw new LexicalErrorException("Precision should be an unsigned integer");
-                }
-            } else {
-                throw new SyntaxErrorException(t.peekNextToken().toString() + " can not be a precision");
-            }
-        } else {
-            return "current precision is " + currentPrecision;
-        }
-    }
-
-    // This function helps set the current precision.
-    private void setPrecision(int precision) {
-        currentPrecision = precision;
-    }
-
-    // This function helps get the current precision.
-    public int getCurrentPrecision() {
-        return currentPrecision;
-    }
-
-    //endregion
-
-    //region Codes to process 'Reset'
+    //region Reset
 
     // This function is used to process the keyword 'reset'
     private String resetProcess(Tokenizer t) throws TokenException, SyntaxErrorException, LexicalErrorException {
@@ -272,20 +269,20 @@ public class Evaluator {
             t.readNextToken();
             if (!t.hasNextToken()) {
                 Set<String> keySet = variables.keySet();
-                PrintStream output = new PrintStream(new File(name + ".txt"));
+                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
                 for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext(); ) {
                     String key = iterator.next();
                     double value = variables.get(key);
-                    output.println(key + " = " + value);
+                    output.println(key + " = " + formatWithPrecision(value));
                     re = "varialbes saved in " + name;
                 }
             } else {
                 Token ch = t.peekNextToken();
                 String v = ch.getIdentifier();
-                PrintStream output = new PrintStream(new File(name + ".txt"));
+                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
                 if (variables.containsKey(v)) {
                     double value = variables.get(v);
-                    output.println(v + " = " + value);
+                    output.println(v + " = " + formatWithPrecision(value));
                     re = "varialbes saved in " + name;
                 } else {
                     throw new SyntaxErrorException("The name of variable is wrong.");
@@ -310,7 +307,7 @@ public class Evaluator {
         if (t.hasNextToken()) {
             Token tmp = t.peekNextToken();
             String name = tmp.getString();
-            File file = new File(name + ".txt");
+            File file = new File(this.fileRootPath + name + ".txt");
             Scanner input = new Scanner(file);
             while (input.hasNextLine()) {
                 String line = input.nextLine();
@@ -328,4 +325,14 @@ public class Evaluator {
     }
 
     // endregion
+
+    //region Saved
+    private String processSaved() {
+        String result = "";
+
+
+        return result;
+    }
+
+    //endregion
 }
