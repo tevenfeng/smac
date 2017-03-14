@@ -99,10 +99,8 @@ public class Evaluator {
                         return loadProcess(t);
                     case "saved":
                         return savedProcess(t);
-                    case "log":
-                        break;
                     case "logged":
-                        break;
+                        return loggedProcess(t);
                     case "setprecision":
                         t.readNextToken();
                         return precisionManage(t);
@@ -135,8 +133,6 @@ public class Evaluator {
                 return formatWithPrecision(last);
             }
         }
-
-
         return resultString;
     }
 
@@ -177,7 +173,10 @@ public class Evaluator {
                 Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
                 while (entries.hasNext()) {
                     Map.Entry<String, Double> tmpEntry = entries.next();
-                    result += tmpEntry.getKey() + " = " + formatWithPrecision(tmpEntry.getValue()) + "\n";
+                    result += tmpEntry.getKey() + " = " + formatWithPrecision(tmpEntry.getValue());
+                    if (entries.hasNext()) {
+                        result += "\n";
+                    }
                 }
             } else {
                 result = "no variable defined\n";
@@ -341,6 +340,32 @@ public class Evaluator {
                 @Override
                 public boolean accept(File file, String s) {
                     return s.endsWith(".txt");
+                }
+            });
+
+            for (String name : names) {
+                result += name + "\n";
+            }
+
+            return result;
+        }
+    }
+    //endregion
+
+    //region Logged
+    private String loggedProcess(Tokenizer t)
+            throws LexicalErrorException, TokenException, SyntaxErrorException {
+        String result = "";
+
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            throw new SyntaxErrorException("Redundant token: " + t.readNextToken().toString());
+        } else {
+            File folder = new File(this.fileRootPath);
+            String[] names = folder.list(new FilenameFilter() {
+                @Override
+                public boolean accept(File file, String s) {
+                    return s.endsWith(".log");
                 }
             });
 
