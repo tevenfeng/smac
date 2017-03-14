@@ -94,13 +94,9 @@ public class Evaluator {
                             throw new SyntaxErrorException("Redundant token: " + t.peekNextToken());
                         }
                     case "save":
-                        String s = saveProcess(t);
-                        System.out.println(s);
-                        return s;
+                        return saveProcess(t);
                     case "load":
-                        String l = loadProcess(t);
-                        System.out.println(l);
-                        return l;
+                        return loadProcess(t);
                     case "saved":
                         return savedProcess(t);
                     case "log":
