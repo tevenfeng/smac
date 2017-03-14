@@ -15,12 +15,14 @@ public class Evaluator {
     // GLOBAL variable to store the 'last' computational result.
     private static double last;
 
+    // Specify the root path we should save files in.
+    private String fileRootPath = "./";
 
     // Hashmap to store all variables
     private static Map<String, Double> variables = new HashMap<>();
 
     // Key words set, help to determine whether an identifier is a key word actually.
-    private static Set keyWords = new HashSet();
+    private static Set<String> keyWords = new HashSet<>();
 
     // Init keyWords set
     static {
@@ -100,7 +102,7 @@ public class Evaluator {
                         System.out.println(l);
                         return l;
                     case "saved":
-                        break;
+                        return savedProcess(t);
                     case "log":
                         break;
                     case "logged":
@@ -142,7 +144,7 @@ public class Evaluator {
         return resultString;
     }
 
-    //region Codes to process 'let'
+    //region Let
 
     // This function processes following tokens after 'let'.
     // And this usually means that we are going to do some assignment-processing.
@@ -179,7 +181,7 @@ public class Evaluator {
                 Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
                 while (entries.hasNext()) {
                     Map.Entry<String, Double> tmpEntry = entries.next();
-                    result += tmpEntry.getKey() + " = " + tmpEntry.getValue() + "\n";
+                    result += tmpEntry.getKey() + " = " + formatWithPrecision(tmpEntry.getValue()) + "\n";
                 }
             } else {
                 result = "no variable defined\n";
@@ -225,7 +227,7 @@ public class Evaluator {
 
     //endregion
 
-    //region Codes to process 'Reset'
+    //region Reset
 
     // This function is used to process the keyword 'reset'
     private String resetProcess(Tokenizer t) throws TokenException, SyntaxErrorException, LexicalErrorException {
@@ -272,7 +274,7 @@ public class Evaluator {
             t.readNextToken();
             if (!t.hasNextToken()) {
                 Set<String> keySet = variables.keySet();
-                PrintStream output = new PrintStream(new File(name + ".txt"));
+                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
                 for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext(); ) {
                     String key = iterator.next();
                     double value = variables.get(key);
@@ -282,7 +284,7 @@ public class Evaluator {
             } else {
                 Token ch = t.peekNextToken();
                 String v = ch.getIdentifier();
-                PrintStream output = new PrintStream(new File(name + ".txt"));
+                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
                 if (variables.containsKey(v)) {
                     double value = variables.get(v);
                     output.println(v + " = " + value);
@@ -310,7 +312,7 @@ public class Evaluator {
         if (t.hasNextToken()) {
             Token tmp = t.peekNextToken();
             String name = tmp.getString();
-            File file = new File(name + ".txt");
+            File file = new File(this.fileRootPath + name + ".txt");
             Scanner input = new Scanner(file);
             while (input.hasNextLine()) {
                 String line = input.nextLine();
@@ -328,4 +330,30 @@ public class Evaluator {
     }
 
     // endregion
+
+    //region Saved
+    private String savedProcess(Tokenizer t)
+            throws LexicalErrorException, TokenException, SyntaxErrorException {
+        String result = "";
+
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            throw new SyntaxErrorException("Redundant token: " + t.readNextToken().toString());
+        } else {
+            File folder = new File(this.fileRootPath);
+            String[] names = folder.list(new FilenameFilter() {
+                @Override
+                public boolean accept(File file, String s) {
+                    return s.endsWith(".txt");
+                }
+            });
+
+            for (String name : names) {
+                result += name + "\n";
+            }
+
+            return result;
+        }
+    }
+    //endregion
 }
