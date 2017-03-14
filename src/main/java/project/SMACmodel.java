@@ -22,7 +22,10 @@ public class SMACmodel extends Observable {
      * the view with the result (a String)
      */
     public void eval(String input) {
-        ////// CHANGE THIS PART //////
+
+        /**
+         * Coded by Fengdingwen(2016229064) and Dingqixuan(2016229062)
+         */
         String r = "";
 
         try {

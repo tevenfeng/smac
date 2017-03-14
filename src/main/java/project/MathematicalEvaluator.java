@@ -10,7 +10,11 @@ import java.util.Stack;
  */
 public class MathematicalEvaluator {
 
+    // To store the final result
     private double result;
+
+    // To help determine whether it is just a number
+    // or an expression that needs to be calculated.
     private boolean isExpression;
 
     public MathematicalEvaluator() {
@@ -18,7 +22,7 @@ public class MathematicalEvaluator {
         isExpression = false;
     }
 
-    // Judge if the expression is legal.
+    // Judge if the expression is legal and calculate to get its value.
     public void computeResult(Tokenizer tokenizer, Map<String, Double> variables, double theLast)
             throws TokenException, GeneralErrorException, LexicalErrorException, SyntaxErrorException {
 
@@ -130,6 +134,7 @@ public class MathematicalEvaluator {
 
     }
 
+    // Compute + - * / or ^
     private double ComputeTheResult(double firstValue, double secondValue, String theOperate)
             throws GeneralErrorException {
         double theResult = 0;
@@ -156,6 +161,7 @@ public class MathematicalEvaluator {
         }
     }
 
+    // Get the final result
     public Result getResult() {
         return new Result(this.result, this.isExpression);
     }

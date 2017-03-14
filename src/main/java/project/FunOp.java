@@ -4,9 +4,10 @@ package project;
  * Coded by Fengdingwen(2016229064)
  * We assume that the priorities of this
  * operators are like the followings:
- * 0: + -
- * 1: * /
- * 2: ^
+ * 0: ( )
+ * 1: + -
+ * 2: * /
+ * 3: ^
  */
 public class FunOp {
     // Name of the operator.
