@@ -2,6 +2,8 @@ package project;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.io.*;
+import java.io.FileNotFoundException;
 
 /**
  * Coded by Fengdingwen(2016229064)
@@ -13,11 +15,14 @@ public class Evaluator {
     // GLOBAL variable to store the 'last' computational result.
     private static double last;
 
+    // Specify the root path we should save files in.
+    private String fileRootPath = "./";
+
     // Hashmap to store all variables
     private static Map<String, Double> variables = new HashMap<>();
 
     // Key words set, help to determine whether an identifier is a key word actually.
-    private static Set keyWords = new HashSet();
+    private static Set<String> keyWords = new HashSet<>();
 
     // Init keyWords set
     static {
@@ -67,7 +72,7 @@ public class Evaluator {
     // for example, if the first token is 'let' then it should be followed
     // by a '=', and if it is 'log' then it should be followed by a String
     public String startProcessByFirstKeyWord(Tokenizer t)
-            throws TokenException, LexicalErrorException, GeneralErrorException, SyntaxErrorException {
+            throws TokenException, LexicalErrorException, GeneralErrorException, SyntaxErrorException, FileNotFoundException {
 
         String resultString = "";
 
@@ -89,18 +94,13 @@ public class Evaluator {
                             throw new SyntaxErrorException("Redundant token: " + t.peekNextToken());
                         }
                     case "save":
-
-                        break;
+                        return saveProcess(t);
                     case "load":
-                        break;
+                        return loadProcess(t);
                     case "saved":
-                        break;
-                    case "log":
-                        break;
-                    case "end":
-                        break;
+                        return savedProcess(t);
                     case "logged":
-                        break;
+                        return loggedProcess(t);
                     case "setprecision":
                         t.readNextToken();
                         return precisionManage(t);
@@ -133,12 +133,10 @@ public class Evaluator {
                 return formatWithPrecision(last);
             }
         }
-
-
         return resultString;
     }
 
-    //region Codes to process 'let'
+    //region Let
 
     // This function processes following tokens after 'let'.
     // And this usually means that we are going to do some assignment-processing.
@@ -175,7 +173,10 @@ public class Evaluator {
                 Iterator<Map.Entry<String, Double>> entries = variables.entrySet().iterator();
                 while (entries.hasNext()) {
                     Map.Entry<String, Double> tmpEntry = entries.next();
-                    result += tmpEntry.getKey() + " = " + tmpEntry.getValue() + "\n";
+                    result += tmpEntry.getKey() + " = " + formatWithPrecision(tmpEntry.getValue());
+                    if (entries.hasNext()) {
+                        result += "\n";
+                    }
                 }
             } else {
                 result = "no variable defined\n";
@@ -221,7 +222,7 @@ public class Evaluator {
 
     //endregion
 
-    //region Codes to process 'Reset'
+    //region Reset
 
     // This function is used to process the keyword 'reset'
     private String resetProcess(Tokenizer t) throws TokenException, SyntaxErrorException, LexicalErrorException {
@@ -257,9 +258,123 @@ public class Evaluator {
 
     //region Save
 
-//    private String saveProcess(Tokenizer t){
-//
-//    }
+    // This function is used to process the key word 'save', that means we
+    // are going to save all variables in the map 'variables'.
+    private String saveProcess(Tokenizer t) throws LexicalErrorException, TokenException, SyntaxErrorException, FileNotFoundException {
+        String re = "";
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            Token tmp = t.peekNextToken();
+            String name = tmp.getString();
+            t.readNextToken();
+            if (!t.hasNextToken()) {
+                Set<String> keySet = variables.keySet();
+                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
+                for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext(); ) {
+                    String key = iterator.next();
+                    double value = variables.get(key);
+                    output.println(key + " = " + value);
+                    re = "varialbes saved in " + name;
+                }
+            } else {
+                Token ch = t.peekNextToken();
+                String v = ch.getIdentifier();
+                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
+                if (variables.containsKey(v)) {
+                    double value = variables.get(v);
+                    output.println(v + " = " + value);
+                    re = "varialbes saved in " + name;
+                } else {
+                    throw new SyntaxErrorException("The name of variable is wrong.");
+                }
+            }
+        } else {
+            throw new FileNotFoundException("Filename is not entered.");
+        }
+        return re;
+    }
 
+    //endregion
+
+    // region Load
+
+    // This function is used to process the key word 'load', which means we
+    // are going to read the context from file and store the context into the map.
+
+    private String loadProcess(Tokenizer t) throws LexicalErrorException, TokenException, FileNotFoundException, SyntaxErrorException {
+        String re = "";
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            Token tmp = t.peekNextToken();
+            String name = tmp.getString();
+            File file = new File(this.fileRootPath + name + ".txt");
+            Scanner input = new Scanner(file);
+            while (input.hasNextLine()) {
+                String line = input.nextLine();
+                Scanner Line = new Scanner(line);
+                String varname = Line.next();
+                String equal = Line.next();
+                double num = Line.nextDouble();
+                variables.put(varname, num);
+            }
+            re = name + "  load";
+        } else {
+            throw new SyntaxErrorException("File is not found.");
+        }
+        return re;
+    }
+
+    // endregion
+
+    //region Saved
+    private String savedProcess(Tokenizer t)
+            throws LexicalErrorException, TokenException, SyntaxErrorException {
+        String result = "";
+
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            throw new SyntaxErrorException("Redundant token: " + t.readNextToken().toString());
+        } else {
+            File folder = new File(this.fileRootPath);
+            String[] names = folder.list(new FilenameFilter() {
+                @Override
+                public boolean accept(File file, String s) {
+                    return s.endsWith(".txt");
+                }
+            });
+
+            for (String name : names) {
+                result += name + "\n";
+            }
+
+            return result;
+        }
+    }
+    //endregion
+
+    //region Logged
+    private String loggedProcess(Tokenizer t)
+            throws LexicalErrorException, TokenException, SyntaxErrorException {
+        String result = "";
+
+        t.readNextToken();
+        if (t.hasNextToken()) {
+            throw new SyntaxErrorException("Redundant token: " + t.readNextToken().toString());
+        } else {
+            File folder = new File(this.fileRootPath);
+            String[] names = folder.list(new FilenameFilter() {
+                @Override
+                public boolean accept(File file, String s) {
+                    return s.endsWith(".log");
+                }
+            });
+
+            for (String name : names) {
+                result += name + "\n";
+            }
+
+            return result;
+        }
+    }
     //endregion
 }
