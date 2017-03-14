@@ -12,8 +12,6 @@ import java.io.FileNotFoundException;
  */
 public class Evaluator {
 
-    private String fileRootPath = "";
-
     // GLOBAL variable to store the 'last' computational result.
     private static double last;
 
@@ -173,7 +171,7 @@ public class Evaluator {
 
     //endregion
 
-    //region Let
+    //region Codes to process 'let'
 
     // This function processes following tokens after 'let'.
     // And this usually means that we are going to do some assignment-processing.
@@ -222,7 +220,7 @@ public class Evaluator {
 
     //endregion
 
-    //region Reset
+    //region Codes to process 'Reset'
 
     // This function is used to process the keyword 'reset'
     private String resetProcess(Tokenizer t) throws TokenException, SyntaxErrorException, LexicalErrorException {
@@ -269,7 +267,7 @@ public class Evaluator {
             t.readNextToken();
             if (!t.hasNextToken()) {
                 Set<String> keySet = variables.keySet();
-                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
+                PrintStream output = new PrintStream(new File(name + ".txt"));
                 for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext(); ) {
                     String key = iterator.next();
                     double value = variables.get(key);
@@ -279,7 +277,7 @@ public class Evaluator {
             } else {
                 Token ch = t.peekNextToken();
                 String v = ch.getIdentifier();
-                PrintStream output = new PrintStream(new File(this.fileRootPath + name + ".txt"));
+                PrintStream output = new PrintStream(new File(name + ".txt"));
                 if (variables.containsKey(v)) {
                     double value = variables.get(v);
                     output.println(v + " = " + formatWithPrecision(value));
@@ -307,7 +305,7 @@ public class Evaluator {
         if (t.hasNextToken()) {
             Token tmp = t.peekNextToken();
             String name = tmp.getString();
-            File file = new File(this.fileRootPath + name + ".txt");
+            File file = new File(name + ".txt");
             Scanner input = new Scanner(file);
             while (input.hasNextLine()) {
                 String line = input.nextLine();
@@ -325,14 +323,4 @@ public class Evaluator {
     }
 
     // endregion
-
-    //region Saved
-    private String processSaved() {
-        String result = "";
-
-
-        return result;
-    }
-
-    //endregion
 }
