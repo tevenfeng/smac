@@ -30,9 +30,11 @@ public class MathematicalEvaluator {
 
         int count = 0;
 
+        // The flag is used to count how many number has been pushed into the value stack
+
+
         while (tokenizer.hasNextToken()) {
             Token getTheNextToken = tokenizer.readNextToken();
-
             count++;
             if (count > 1) {
                 this.isExpression = true;
@@ -50,12 +52,26 @@ public class MathematicalEvaluator {
                 }
             } else if (getTheNextToken.isDelimiter()) {
                 FunOp GetTheFunOp = new FunOp(getTheNextToken.getDelimiter());
+
+                if (GetTheFunOp.getName().equals(")") && theValueStack.isEmpty()) {
+                    throw new SyntaxErrorException("malformed expression");
+                }
+                if (!theOperateStack.isEmpty() && theValueStack.isEmpty()) {
+                    throw new SyntaxErrorException("malformed expression");
+                }
+
                 if (GetTheFunOp.getName().equals("(")) {
                     theOperateStack.push(GetTheFunOp);
                 } else {
                     while (!theOperateStack.peek().getName().equals("(")) {
                         String theOperate = theOperateStack.pop().getName();
+                        if (theValueStack.isEmpty()) {
+                            throw new SyntaxErrorException("malformed expression");
+                        }
                         double firstValue = theValueStack.pop();
+                        if (theValueStack.isEmpty()) {
+                            throw new SyntaxErrorException("malformed expression");
+                        }
                         double secondValue = theValueStack.pop();
                         double theResult = ComputeTheResult(firstValue, secondValue, theOperate);
                         theValueStack.push(theResult);
@@ -64,30 +80,54 @@ public class MathematicalEvaluator {
                     theOperateStack.pop();
                 }
             } else if (getTheNextToken.isOperator()) {
+                // check if the expression is malformed, such as + 2 + 3,is a malformed expression,
+                // 3 + 7 * / 2 is a malformed expression too.
+                if (theValueStack.isEmpty()) {
+                    throw new SyntaxErrorException("malformed expression");
+                }
+
                 FunOp thisOperate = new FunOp(getTheNextToken.getOperator());
                 while (!theOperateStack.empty() && (theOperateStack.peek().getPriority() >= thisOperate.getPriority())) {
                     String theOperate = theOperateStack.pop().getName();
+                    if (theValueStack.isEmpty()) {
+                        throw new SyntaxErrorException("malformed expression");
+                    }
                     double firstValue = theValueStack.pop();
+                    if (theValueStack.isEmpty()) {
+                        throw new SyntaxErrorException("malformed expression");
+                    }
                     double secondValue = theValueStack.pop();
                     double theResult = ComputeTheResult(firstValue, secondValue, theOperate);
                     theValueStack.push(theResult);
                 }
 
                 theOperateStack.push(thisOperate);
+            } else {
+                throw new SyntaxErrorException("malformed expression");
             }
-
         }
 
         while (!theOperateStack.empty()) {
             FunOp tmp = theOperateStack.pop();
             String theOperate = tmp.getName();
+            if (theValueStack.isEmpty()) {
+                throw new SyntaxErrorException("malformed expression");
+            }
             double firstValue = theValueStack.pop();
+            if (theValueStack.isEmpty()) {
+                throw new SyntaxErrorException("malformed expression");
+            }
             double secondValue = theValueStack.pop();
             double theResult = ComputeTheResult(firstValue, secondValue, theOperate);
             theValueStack.push(theResult);
         }
 
-        this.result = theValueStack.pop();
+        if (theOperateStack.empty() && theValueStack.size() == 1) {
+            this.result = theValueStack.pop();
+        } else {
+            throw new SyntaxErrorException("malformed expression");
+        }
+
     }
 
     private double ComputeTheResult(double firstValue, double secondValue, String theOperate)
@@ -101,9 +141,8 @@ public class MathematicalEvaluator {
             case "*":
                 return firstValue * secondValue;
             case "/":
-                if (secondValue == 0) {
-                    String error = "division by zero";
-                    throw new GeneralErrorException(error);
+                if (firstValue == 0) {
+                    throw new GeneralErrorException("division by zero");
                 } else {
                     return secondValue / firstValue;
                 }
